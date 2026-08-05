@@ -1,0 +1,4 @@
+@EndUserText.label: 'Service Definition'
+define service Zsd1_flight_quote {
+  expose ZCE1_FLIGHT_QUOTE as FlightQuote;
+}
