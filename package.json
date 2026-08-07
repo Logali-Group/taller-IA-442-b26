@@ -5,8 +5,12 @@
   "dependencies": {
     "@cap-js/hana": "^3",
     "@cap-js/mcp": "^1.4.0",
+    "@sap-cloud-sdk/connectivity": "^4",
+    "@sap-cloud-sdk/http-client": "^4",
+    "@sap-cloud-sdk/resilience": "^4",
     "@sap/cds": "^10",
-    "@sap/xssec": "^4"
+    "@sap/xssec": "^4",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^3",
@@ -20,6 +24,14 @@
     "requires": {
       "[production]": {
         "auth": "xsuaa"
+      },
+      "zsb1_flight_quote": {
+        "kind": "odata-v4",
+        "model": "srv/external/zsb1_flight_quote",
+        "credentials": {
+          "destination": "ZSB1_FLIGHT_QUOTE",
+          "path": "/sap/opu/odata4/sap/zsb1_flight_quote/srvd_a2x/sap/zsd1_flight_quote/0001"
+        }
       }
     }
   }

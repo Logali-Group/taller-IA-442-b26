@@ -18,6 +18,8 @@ entity Materials : managed {
         brgew        : Decimal(13, 3) @description: 'MARA-BRGEW: Peso bruto del material.';
         ntgew        : Decimal(13, 3) @description: 'MARA-NTGEW: Peso neto del material.';
         gewei        : String(3)      @description: 'MARA-GEWEI: Unidad de peso utilizada para los campos de peso.';
+        stprs        : Decimal(11, 2) @description: 'MBEW-STPRS: Precio estándar unitario del material. El dato real pertenece a la tabla de valoración MBEW y aquí se aplana para simplificar la simulación de cotización.';
+        waers        : String(5)      @description: 'MBEW-WAERS: Moneda del precio estándar. El origen real es la tabla de valoración MBEW.';
         lvorm        : Boolean        @description: 'MARA-LVORM: Indicador de borrado lógico. false significa activo y true significa marcado para borrar.';
         descriptions : Composition of many MaterialDescriptions
                            on descriptions.material = $self

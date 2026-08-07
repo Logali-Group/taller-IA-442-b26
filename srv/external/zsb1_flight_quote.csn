@@ -1,0 +1,120 @@
+{
+ "meta": {
+  "creator": "cds-dk 10.0.6"
+ },
+ "$version": "2.0",
+ "definitions": {
+  "zsb1_flight_quote": {
+   "kind": "service",
+   "@cds.external": true,
+   "@CodeList.CurrencyCodes.Url": "../../../../default/iwbep/common/0001/$metadata",
+   "@CodeList.CurrencyCodes.CollectionPath": "Currencies",
+   "@Common.ApplyMultiUnitBehaviorForSortingAndFiltering": true,
+   "@Capabilities.FilterFunctions": [
+    "eq",
+    "ne",
+    "gt",
+    "ge",
+    "lt",
+    "le",
+    "and",
+    "or",
+    "contains",
+    "startswith",
+    "endswith",
+    "any",
+    "all"
+   ],
+   "@SAP__support.TechnicalInfoLinks.Url": "../../../../default/iwbep/common/0001/$metadata",
+   "@SAP__support.TechnicalInfoLinks.FunctionImport": "GetTechnicalInfoLinks",
+   "@Capabilities.SupportedFormats": [
+    "application/json",
+    "application/pdf"
+   ],
+   "@PDF.Features.DocumentDescriptionReference": "../../../../default/iwbep/common/0001/$metadata",
+   "@PDF.Features.DocumentDescriptionCollection": "MyDocumentDescriptions",
+   "@PDF.Features.ArchiveFormat": true,
+   "@PDF.Features.Border": true,
+   "@PDF.Features.CoverPage": true,
+   "@PDF.Features.FitToPage": true,
+   "@PDF.Features.FontName": true,
+   "@PDF.Features.FontSize": true,
+   "@PDF.Features.HeaderFooter": true,
+   "@PDF.Features.IANATimezoneFormat": true,
+   "@PDF.Features.Margin": true,
+   "@PDF.Features.Padding": true,
+   "@PDF.Features.ResultSizeDefault": 20000,
+   "@PDF.Features.ResultSizeMaximum": 20000,
+   "@PDF.Features.Signature": true,
+   "@PDF.Features.TextDirectionLayout": true,
+   "@PDF.Features.Treeview": true,
+   "@PDF.Features.UploadToFileShare": true,
+   "@Capabilities.KeyAsSegmentSupported": true,
+   "@Capabilities.AsynchronousRequestsSupported": true
+  },
+  "zsb1_flight_quote.FlightQuote": {
+   "kind": "entity",
+   "@cds.external": true,
+   "@cds.persistence.skip": true,
+   "elements": {
+    "AirlineID": {
+     "key": true,
+     "type": "cds.String",
+     "length": 3,
+     "notNull": true
+    },
+    "ConnectionID": {
+     "key": true,
+     "type": "cds.String",
+     "length": 4,
+     "notNull": true
+    },
+    "FlightDate": {
+     "key": true,
+     "type": "cds.Date",
+     "notNull": true
+    },
+    "Passengers": {
+     "key": true,
+     "type": "cds.Integer",
+     "notNull": true
+    },
+    "BasePrice": {
+     "type": "cds.Decimal",
+     "precision": 15,
+     "scale": 2,
+     "notNull": true
+    },
+    "CurrencyCode": {
+     "type": "cds.String",
+     "length": 3,
+     "notNull": true,
+     "@Common.IsCurrency": true
+    },
+    "DiscountPct": {
+     "type": "cds.Decimal",
+     "precision": 5,
+     "scale": 2,
+     "notNull": true
+    },
+    "NetPrice": {
+     "type": "cds.Decimal",
+     "precision": 15,
+     "scale": 2,
+     "notNull": true
+    },
+    "Reason": {
+     "type": "cds.String",
+     "length": 120,
+     "notNull": true
+    }
+   },
+   "@Common.Label": "Cotizacion de vuelo con descuento por volumen",
+   "@Capabilities.SearchRestrictions.Searchable": false,
+   "@Capabilities.InsertRestrictions.Insertable": false,
+   "@Capabilities.DeleteRestrictions.Deletable": false,
+   "@Capabilities.UpdateRestrictions.Updatable": false,
+   "@Capabilities.UpdateRestrictions.QueryOptions.SelectSupported": true
+  }
+ }
+}

@@ -26,6 +26,7 @@ modules:
     requires:
       - name: materials_mcp-auth
       - name: materials_mcp-db
+      - name: materials_mcp-destination
 
   - name: materials_mcp-db-deployer
     type: hdb
@@ -78,3 +79,8 @@ resources:
     parameters:
       service: hana
       service-plan: hdi-shared
+  - name: materials_mcp-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite

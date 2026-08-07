@@ -2,7 +2,7 @@
 // No basta un curl suelto porque el protocolo exige saludo: initialize,
 // luego notifications/initialized, y solo después tools/list y tools/call.
 // Además contempla respuestas como SSE con líneas "data:" que envuelven JSON.
-// El objetivo es diagnóstico rápido: siete comprobaciones en orden y salida breve.
+// El objetivo es diagnóstico rápido: comprobaciones en orden y salida breve.
 // Nunca corta la ejecución por un fallo para facilitar el análisis combinado.
 
 import http from 'http'
@@ -118,44 +118,16 @@ function textOf (response) {
     console.log('')
   }
 
-  const buildCallArgs = (schema, operationName, operationArgs) => {
-    const properties = schema?.properties || {}
-    const propertyNames = Object.keys(properties)
-
-    const operationKey =
-      propertyNames.find(key => ['action', 'function', 'name', 'operation', 'operationName', 'method'].includes(key)) ||
-      'name'
-
-    const payloadKey =
-      propertyNames.find(key => ['params', 'arguments', 'data', 'input', 'payload'].includes(key)) ||
-      'arguments'
-
-    return {
-      [operationKey]: operationName,
-      [payloadKey]: operationArgs
-    }
-  }
-
-  const extractActionNames = schema => {
-    const properties = schema?.properties || {}
-    const candidates = [
-      properties.action?.enum,
-      properties.operation?.enum,
-      properties.operationName?.enum,
-      properties.name?.enum,
-      schema?.definitions?.ActionName?.enum,
-      schema?.$defs?.ActionName?.enum
-    ]
-
-    const firstEnum = candidates.find(item => Array.isArray(item) && item.length > 0)
-    return firstEnum || []
-  }
+  const toolCallParams = (name, args) => ({
+    name,
+    arguments: args
+  })
 
   let rpcId = 1
   const nextId = () => rpcId++
 
   // 1) Que el servidor MCP responde al saludo y corresponde al servicio esperado.
-  let initializeParsed = null
+  let initializeStatus = 'N/A'
   try {
     const initializeResponse = await call({
       jsonrpc: '2.0',
@@ -171,7 +143,8 @@ function textOf (response) {
       }
     })
 
-    initializeParsed = parse(initializeResponse.body)
+    initializeStatus = initializeResponse.status
+    const initializeParsed = parse(initializeResponse.body)
     const serverName =
       initializeParsed?.result?.serverInfo?.name ||
       initializeParsed?.result?.name ||
@@ -179,7 +152,7 @@ function textOf (response) {
 
     printCheck(
       '1. initialize',
-      initializeResponse.status,
+      initializeStatus,
       `Servidor: ${serverName} | Respuesta: ${JSON.stringify(initializeParsed)}`
     )
   } catch (err) {
@@ -194,8 +167,6 @@ function textOf (response) {
     })
   } catch (_) {}
 
-  let callToolSchema = null
-
   // 2) Qué herramientas ve el agente y qué acciones expone la herramienta de invocación.
   try {
     const listResponse = await call({
@@ -209,10 +180,8 @@ function textOf (response) {
     const tools = Array.isArray(listParsed?.result?.tools) ? listParsed.result.tools : []
     const toolNames = tools.map(tool => tool?.name).filter(Boolean)
 
-    const callTool = tools.find(tool => /call/i.test(tool?.name || '')) || null
-    callToolSchema = callTool?.inputSchema || null
-
-    const actionNames = extractActionNames(callToolSchema)
+    const callTool = tools.find(tool => tool?.name === 'call') || null
+    const actionNames = callTool?.inputSchema?.properties?.action?.enum || []
 
     printCheck(
       '2. tools/list',
@@ -229,15 +198,13 @@ function textOf (response) {
 
   // 3) Qué ve el agente al describir el modelo.
   try {
-    const describeArgs = buildCallArgs(callToolSchema, 'describe', {
-      entity: 'Materials'
-    })
-
     const describeResponse = await call({
       jsonrpc: '2.0',
       id: nextId(),
       method: 'tools/call',
-      params: describeArgs
+      params: toolCallParams('describe', {
+        entities: ['Materials']
+      })
     })
 
     const describeParsed = parse(describeResponse.body)
@@ -254,15 +221,13 @@ function textOf (response) {
 
   // 4) Que el agente puede navegar asociaciones/composiciones con CQL.
   try {
-    const queryArgs = buildCallArgs(callToolSchema, 'query', {
-      statement: "SELECT from MaterialDescriptions { material.matnr as matnr, material.mtart as mtart, language.code as language, mktx } limit 5"
-    })
-
     const queryResponse = await call({
       jsonrpc: '2.0',
       id: nextId(),
       method: 'tools/call',
-      params: queryArgs
+      params: toolCallParams('query', {
+        cql: 'SELECT from MaterialDescriptions { material.matnr as matnr, material.mtart as mtart, language.code as language, mktx } limit 5'
+      })
     })
 
     const queryParsed = parse(queryResponse.body)
@@ -279,28 +244,26 @@ function textOf (response) {
 
   // 5) Que el agente puede dar de alta por acción no ligada con datos válidos.
   try {
-    const registerValidArgs = buildCallArgs(callToolSchema, 'call', {
-      name: 'registerMaterial',
-      params: {
-        matnr: 'MAT-9901',
-        mtart: 'FERT',
-        mbrsh: 'M',
-        matkl: 'MCPTEST01',
-        meins: 'ST',
-        brgew: 5.5,
-        ntgew: 5.1,
-        gewei: 'KG',
-        language: 'es',
-        mktx: 'Material de prueba MCP válido',
-        lvorm: false
-      }
-    })
-
     const registerValidResponse = await call({
       jsonrpc: '2.0',
       id: nextId(),
       method: 'tools/call',
-      params: registerValidArgs
+      params: toolCallParams('call', {
+        action: 'registerMaterial',
+        parameters: {
+          matnr: 'MAT-9901',
+          mtart: 'FERT',
+          mbrsh: 'M',
+          matkl: 'MCPTEST01',
+          meins: 'ST',
+          brgew: 5.5,
+          ntgew: 5.1,
+          gewei: 'KG',
+          language: 'es',
+          mktx: 'Material de prueba MCP válido',
+          lvorm: false
+        }
+      })
     })
 
     const registerValidParsed = parse(registerValidResponse.body)
@@ -317,28 +280,26 @@ function textOf (response) {
 
   // 6) Que las reglas de negocio también se aplican cuando invoca un agente por MCP.
   try {
-    const registerInvalidArgs = buildCallArgs(callToolSchema, 'call', {
-      name: 'registerMaterial',
-      params: {
-        matnr: 'MAT-9902',
-        mtart: 'FERT',
-        mbrsh: 'M',
-        matkl: 'MCPTEST02',
-        meins: 'ST',
-        brgew: 3,
-        ntgew: 4,
-        gewei: 'KG',
-        language: 'es',
-        mktx: 'Material inválido por pesos',
-        lvorm: false
-      }
-    })
-
     const registerInvalidResponse = await call({
       jsonrpc: '2.0',
       id: nextId(),
       method: 'tools/call',
-      params: registerInvalidArgs
+      params: toolCallParams('call', {
+        action: 'registerMaterial',
+        parameters: {
+          matnr: 'MAT-9902',
+          mtart: 'FERT',
+          mbrsh: 'M',
+          matkl: 'MCPTEST02',
+          meins: 'ST',
+          brgew: 3,
+          ntgew: 4,
+          gewei: 'KG',
+          language: 'es',
+          mktx: 'Material inválido por pesos',
+          lvorm: false
+        }
+      })
     })
 
     const registerInvalidParsed = parse(registerInvalidResponse.body)
@@ -359,18 +320,16 @@ function textOf (response) {
 
   // 7) Que el agente puede consultar por función no ligada.
   try {
-    const findArgs = buildCallArgs(callToolSchema, 'call', {
-      name: 'findMaterialsByText',
-      params: {
-        searchText: 'bomba'
-      }
-    })
-
     const findResponse = await call({
       jsonrpc: '2.0',
       id: nextId(),
       method: 'tools/call',
-      params: findArgs
+      params: toolCallParams('call', {
+        action: 'findMaterialsByText',
+        parameters: {
+          searchText: 'bomba'
+        }
+      })
     })
 
     const findParsed = parse(findResponse.body)
@@ -383,6 +342,66 @@ function textOf (response) {
     )
   } catch (err) {
     printCheck('7. función findMaterialsByText', 'ERROR:UNCAUGHT', err?.message || String(err))
+  }
+
+  // 8) Que la simulación de precio devuelve importes redondeados y motivo de tramo con datos válidos.
+  try {
+    const pricingValidResponse = await call({
+      jsonrpc: '2.0',
+      id: nextId(),
+      method: 'tools/call',
+      params: toolCallParams('call', {
+        action: 'simulateOrderPricing',
+        parameters: {
+          matnr: 'MAT-1001',
+          quantity: 550,
+          language: 'es'
+        }
+      })
+    })
+
+    const pricingValidParsed = parse(pricingValidResponse.body)
+    const pricingValidText = textOf(pricingValidParsed)
+
+    printCheck(
+      '8. simulación válida de precio',
+      pricingValidResponse.status,
+      `${pricingValidText} | JSON: ${JSON.stringify(pricingValidParsed)}`
+    )
+  } catch (err) {
+    printCheck('8. simulación válida de precio', 'ERROR:UNCAUGHT', err?.message || String(err))
+  }
+
+  // 9) Que la simulación rechaza materiales sin precio estándar con error de negocio.
+  try {
+    const pricingInvalidResponse = await call({
+      jsonrpc: '2.0',
+      id: nextId(),
+      method: 'tools/call',
+      params: toolCallParams('call', {
+        action: 'simulateOrderPricing',
+        parameters: {
+          matnr: 'MAT-1006',
+          quantity: 10,
+          language: 'es'
+        }
+      })
+    })
+
+    const pricingInvalidParsed = parse(pricingInvalidResponse.body)
+    const pricingInvalidText = textOf(pricingInvalidParsed)
+
+    printCheck(
+      '9. simulación inválida por falta de precio',
+      pricingInvalidResponse.status,
+      {
+        expectedMessage: 'El material MAT-1006 no tiene precio estándar, así que no se puede cotizar.',
+        toolText: pricingInvalidText,
+        response: pricingInvalidParsed
+      }
+    )
+  } catch (err) {
+    printCheck('9. simulación inválida por falta de precio', 'ERROR:UNCAUGHT', err?.message || String(err))
   }
 })().catch(() => {
   console.log('== Error general ==')
